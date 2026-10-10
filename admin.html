@@ -125,8 +125,8 @@ function openDetail(r) {
     ${r.Identity_By ? `<dt>ตรวจตัวตน</dt><dd>${esc(r.Identity_By)} ${esc(r.Identity_At)}\nวิธีตรวจ: ${esc(r.Identity_Note)}</dd>` : ''}
     ${stepRow('เจ้าหน้าที่', r.Staff_By, r.Staff_At, r.Staff_Remark)}${stepRow('ผอ.', r.Director_By, r.Director_At, r.Director_Remark)}
     ${r.Sent_By ? `<dt>ส่งเอกสาร</dt><dd>${esc(r.Sent_By)} ${esc(r.Sent_At)}${r.Sent_Note ? '\nบันทึก: ' + esc(r.Sent_Note) : ''}</dd>` : ''}</dl>
-    ${canStaff ? `<label class="check" for="mId"><input type="checkbox" id="mId"><span>ตรวจสอบตัวตนผู้ขอกับทะเบียนบุคลากรแล้ว (ชื่อ ตำแหน่ง กลุ่มงานตรงกัน และเป็นเอกสารของผู้ขอเอง)</span></label>
-      <label for="mIdn">วิธีตรวจสอบ * <span class="meta">(เช่น เทียบทะเบียนประวัติ / โทรยืนยันเบอร์ในทะเบียน)</span></label><input id="mIdn">` : ''}
+    ${canStaff ? `<label class="check" for="mId"><input type="checkbox" id="mId"><span>ตรวจสอบตัวตนผู้ขอกับทะเบียนบุคลากรแล้ว (ชื่อ ตำแหน่ง กลุ่มงานตรงกัน และเป็นเอกสารของผู้ขอเอง หรือมีหนังสือยินยอม/มอบฉันทะจากเจ้าของเอกสารที่ถูกต้อง)</span></label>
+      <label for="mIdn">วิธีตรวจสอบ * <span class="meta">(เช่น เทียบทะเบียนประวัติ / โทรยืนยันเบอร์ในทะเบียน / ตรวจหนังสือมอบฉันทะ)</span></label><input id="mIdn">` : ''}
     ${canStaff || canDir ? `<label for="mRm">หมายเหตุ (ถ้าไม่อนุมัติต้องระบุเหตุผล ผู้ขอจะได้รับทางอีเมล)</label><textarea id="mRm"></textarea>
       <div class="actions"><button id="mOk" class="btn ok">${canStaff ? 'ตรวจสอบแล้ว ส่งต่อ ผอ.' : 'อนุมัติ'}</button><button id="mNo" class="btn danger">ไม่อนุมัติ</button></div>` : ''}
     ${sendBox ? `<div class="sheet"><h3>ใบงานส่งเอกสาร (ส่งด้วยตนเองทีละราย)</h3>
