@@ -1,6 +1,5 @@
-// ===== ตั้งค่า 2 ค่านี้ก่อนใช้งาน =====
+// ===== ตั้งค่า =====
 const CONFIG = {
-  LIFF_ID: '2011924190-XBGvVIL6',
   API_URL: 'https://script.google.com/macros/s/AKfycbx4gWfPTDPlKd9B0kdGBsnZN_GVxalWvI2OFn3BriTe5rHj8t_ICF9_kJiUAcALlFaK/exec',
 };
 
@@ -9,14 +8,13 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const STATUS_TH = { Pending: 'รอเจ้าหน้าที่ตรวจสอบ', WaitDirector: 'รอ ผอ. อนุมัติ', Approved: 'อนุมัติแล้ว รอส่งเอกสาร', Sent: 'ส่งเอกสารแล้ว', Rejected: 'ไม่อนุมัติ' };
 const badge = (s) => `<span class="badge b-${esc(s)}">${esc(STATUS_TH[s] || s)}</span>`;
 
-// ส่งเป็น text/plain เพื่อเลี่ยง CORS preflight ของ Apps Script
+// ส่งเป็น text/plain เพื่อเลี่ยง CORS preflight ของ Apps Script (หน้าหลังบ้านแนบ session อัตโนมัติ)
 async function api(action, payload = {}) {
-  const sess = sessionStorage.getItem('hr_sess');
-  const auth = action === 'adminLogin' ? {} : sess ? { session: sess } : { idToken: liff.getIDToken() };
+  const session = sessionStorage.getItem('hr_sess') || undefined;
   const res = await fetch(CONFIG.API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action, ...auth, payload }),
+    body: JSON.stringify({ action, session, payload }),
   });
   const text = await res.text();
   let r;
@@ -24,21 +22,9 @@ async function api(action, payload = {}) {
   catch (e) { throw new Error('เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ (Apps Script ยังไม่ได้ Deploy เวอร์ชันล่าสุด หรือยังไม่ได้อนุญาตสิทธิ์) — เปิดลิงก์ API_URL ในเบราว์เซอร์เพื่อตรวจระบบ'); }
   if (!r.ok) {
     if (r.error === 'SESSION_EXPIRED') { sessionStorage.removeItem('hr_sess'); location.reload(); throw new Error('เซสชันหมดอายุ'); }
-    if (r.error === 'INVALID_TOKEN') {
-      // ลอง login LINE ใหม่ได้ครั้งเดียว กันวนลูป
-      if (!sessionStorage.getItem('hr_relogin')) { sessionStorage.setItem('hr_relogin', '1'); liff.logout(); location.reload(); throw new Error('กำลังเข้าสู่ระบบใหม่...'); }
-      throw new Error('ยืนยันตัวตนผ่าน LINE ไม่สำเร็จ: ' + (r.detail || 'INVALID_TOKEN'));
-    }
     throw new Error(r.error);
   }
-  sessionStorage.removeItem('hr_relogin');
   return r.data;
-}
-
-async function startLiff() {
-  await liff.init({ liffId: CONFIG.LIFF_ID });
-  if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return false; }
-  return true;
 }
 
 const toB64 = (f) => new Promise((ok, no) => {
