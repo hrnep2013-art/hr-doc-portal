@@ -4,11 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>หลังบ้าน — ระบบขอเอกสาร กลุ่มบริหารทรัพยากรบุคคล</title>
+<meta name="theme-color" content="#12306a">
+<link rel="icon" href="/assets/dep-logo.png">
 <link rel="stylesheet" href="/style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
-<div id="login" class="wrap" hidden><div class="card" style="max-width:420px;margin:3rem auto">
+<div id="login" class="wrap" hidden><header class="hero box">
+  <div class="hero-in">
+    <img class="hero-img" src="/assets/dep-building.jpg" alt="อาคารกรมส่งเสริมและพัฒนาคุณภาพชีวิตคนพิการ">
+    <div class="hero-txt">
+      <img class="seal" src="/assets/dep-logo.png" alt="ตราสัญลักษณ์กรมส่งเสริมและพัฒนาคุณภาพชีวิตคนพิการ">
+      <h1>หลังบ้าน ระบบขอเอกสาร</h1>
+      <p class="sub">กลุ่มบริหารทรัพยากรบุคคล</p>
+      <small>กรมส่งเสริมและพัฒนาคุณภาพชีวิตคนพิการ</small>
+    </div>
+  </div>
+</header><div class="card" style="max-width:420px;margin:3rem auto">
   <h2>เข้าสู่ระบบหลังบ้าน</h2><p class="meta">ระบบขอเอกสาร กลุ่มบริหารทรัพยากรบุคคล</p>
   <label for="lu">ชื่อผู้ใช้</label><input id="lu" autocomplete="username">
   <label for="lp">รหัสผ่าน</label><input id="lp" type="password" autocomplete="current-password">
@@ -22,7 +34,7 @@
 
 <div id="app" class="layout" hidden>
   <aside class="side">
-    <h2>ระบบขอเอกสาร<br>กลุ่มบริหารทรัพยากรบุคคล</h2>
+    <div class="brand"><img src="/assets/dep-logo.png" alt=""><h2>ระบบขอเอกสาร<br>กลุ่มบริหารทรัพยากรบุคคล</h2></div>
     <button id="n1" class="on">รายการคำขอ</button>
     <button id="n2">สรุปสถิติ</button>
     <div class="me" id="me"></div>
@@ -74,7 +86,7 @@
 <script src="/common.js"></script>
 <script>
 let me, list = [], stats, charts = {};
-const NAVY = ['#0d9488', '#4f46e5', '#f59e0b', '#ec4899', '#64748b', '#16a34a', '#dc2626'];
+const NAVY = ['#12306a', '#c9a24d', '#4f7cc4', '#8f6f22', '#6b7a99', '#1f7a4d', '#c0392b'];
 
 async function start() {
   $('#login').hidden = true;
