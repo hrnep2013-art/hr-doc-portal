@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ระบบขอเอกสาร กลุ่มบริหารทรัพยากรบุคคล</title>
+<link rel="stylesheet" href="/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="logo">HR</div>
+  <h1>ขอเอกสาร<small>กลุ่มบริหารทรัพยากรบุคคล กรมส่งเสริมและพัฒนาคุณภาพชีวิตคนพิการ</small></h1>
+  <img id="pic" class="avatar" alt="" hidden>
+</header>
+
+<div class="wrap">
+  <nav class="tabs"><button id="t1" class="on">ยื่นคำขอ</button><button id="t2">ติดตามสถานะ</button></nav>
+
+  <section id="p1">
+    <ol class="wiz" id="wiz"><li data-n="1">ข้อมูลผู้ขอ</li><li data-n="2">เอกสารที่ขอ</li><li data-n="3">ตรวจทาน</li></ol>
+
+    <div class="card" id="s1">
+      <h2>ข้อมูลผู้ขอ</h2>
+      <div class="two">
+        <div><label for="fn">ชื่อ *</label><input id="fn" autocomplete="given-name"></div>
+        <div><label for="ln">นามสกุล *</label><input id="ln" autocomplete="family-name"></div>
+      </div>
+      <label for="pos">ตำแหน่ง *</label><input id="pos">
+      <label for="dep">กลุ่มงาน/หน่วยงาน *</label><input id="dep">
+      <label for="tel">เบอร์โทรติดต่อ</label><input id="tel" type="tel" inputmode="tel" autocomplete="tel">
+      <label for="em">อีเมลที่ต้องการรับไฟล์เอกสาร PDF *</label><input id="em" type="email" inputmode="email" autocomplete="email">
+    </div>
+
+    <div class="card" id="s2" hidden>
+      <h2>เอกสารที่ขอ</h2>
+      <label for="cat">ประเภทเอกสาร *</label>
+      <select id="cat"><option value="">กำลังโหลดประเภทเอกสาร...</option></select>
+      <div id="hint" class="hint" hidden></div>
+      <label for="detail">ต้องการเอกสารอะไร * <span class="meta">(ชื่อเอกสาร จำนวนฉบับ)</span></label><textarea id="detail"></textarea>
+      <label for="purpose">นำไปใช้ทำอะไร *</label><textarea id="purpose"></textarea>
+      <label for="to">นำไปยื่นที่หน่วยงานใด <span class="meta">(ถ้ามี)</span></label><input id="to">
+      <div id="attach" hidden>
+        <label for="file">แนบเอกสารประกอบ <span id="req" class="meta"></span></label>
+        <input id="file" type="file" accept=".pdf,.png,.jpg,.jpeg" multiple>
+        <div class="meta">PDF, PNG, JPG ไม่เกิน 5 MB ต่อไฟล์ สูงสุด 5 ไฟล์</div>
+        <ul id="flist" class="files"></ul>
+      </div>
+    </div>
+
+    <div class="card" id="s3" hidden>
+      <h2>ตรวจทานก่อนส่ง</h2>
+      <dl id="sum"></dl>
+      <div class="hint">คำขอจะผ่านเจ้าหน้าที่ตรวจสอบ และ ผอ.กลุ่มบริหารทรัพยากรบุคคลอนุมัติ จากนั้นจะส่งไฟล์ PDF ไปที่อีเมลที่ท่านระบุ</div>
+    </div>
+
+    <div id="err" class="err" role="alert"></div>
+    <div class="bar"><button id="back" class="btn sec" hidden>ย้อนกลับ</button><button id="next" class="btn">ถัดไป</button></div>
+  </section>
+
+  <section id="p2" hidden><div id="list"></div></section>
+</div>
+
+<script src="/common.js"></script>
+<script>
+let me, cats = [], picked = [], step = 1;
+const V = (id) => $('#' + id).value.trim();
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+async function boot() {
+  if (!(await startLiff())) return;
+  me = await api('getMe');
+  cats = me.categories;
+  $('#pic').src = me.picture; $('#pic').hidden = !me.picture;
+  $('#fn').value = me.firstName; $('#ln').value = me.lastName; $('#pos').value = me.position;
+  $('#dep').value = me.department; $('#tel').value = me.phone; $('#em').value = me.email;
+  $('#cat').innerHTML = '<option value="">— เลือกประเภทเอกสาร —</option>' + cats.map((c) => `<option>${esc(c.name)}</option>`).join('');
+}
+
+$('#cat').onchange = () => {
+  const c = cats.find((x) => x.name === $('#cat').value);
+  $('#hint').hidden = !c; $('#hint').textContent = c ? c.hint : '';
+  $('#attach').hidden = !c || c.attach === 'none';
+  $('#req').textContent = c && c.attach === 'required' ? '(จำเป็น)' : '(ถ้ามี)';
+  if (c && c.attach === 'none') { picked = []; drawFiles(); }
+};
+$('#file').onchange = (e) => { picked = picked.concat([...e.target.files]).slice(0, 5); e.target.value = ''; drawFiles(); };
+function drawFiles() {
+  $('#flist').innerHTML = picked.map((f, i) => `<li><span>${esc(f.name)} (${(f.size / 1048576).toFixed(1)} MB)</span><button data-i="${i}">ลบ</button></li>`).join('');
+  $('#flist').querySelectorAll('button').forEach((b) => b.onclick = () => { picked.splice(+b.dataset.i, 1); drawFiles(); });
+}
+
+function show(n) {
+  step = n;
+  [1, 2, 3].forEach((i) => $('#s' + i).hidden = i !== n);
+  [...$('#wiz').children].forEach((li, i) => li.className = i + 1 < n ? 'done' : i + 1 === n ? 'on' : '');
+  $('#back').hidden = n === 1;
+  $('#next').textContent = n === 3 ? 'ส่งคำขอ' : 'ถัดไป';
+  if (n === 3) {
+    const row = (k, v) => `<dt>${k}</dt><dd>${esc(v) || '—'}</dd>`;
+    $('#sum').innerHTML = row('ผู้ขอ', V('fn') + ' ' + V('ln')) + row('ตำแหน่ง', V('pos')) + row('กลุ่มงาน', V('dep')) + row('โทรศัพท์', V('tel')) +
+      row('อีเมลรับไฟล์', V('em')) + row('ประเภท', V('cat')) + row('ต้องการเอกสาร', V('detail')) + row('วัตถุประสงค์', V('purpose')) +
+      row('ยื่นที่', V('to')) + row('ไฟล์แนบ', picked.map((f) => f.name).join(', '));
+  }
+  scrollTo({ top: 0 });
+}
+function validate(n) {
+  if (n === 1) {
+    const need = { fn: 'ชื่อ', ln: 'นามสกุล', pos: 'ตำแหน่ง', dep: 'กลุ่มงาน/หน่วยงาน' };
+    for (const k in need) if (!V(k)) return 'กรุณากรอก' + need[k];
+    if (!EMAIL.test(V('em'))) return 'กรุณากรอกอีเมลให้ถูกต้อง';
+  }
+  if (n === 2) {
+    if (!V('cat')) return 'กรุณาเลือกประเภทเอกสาร';
+    if (!V('detail')) return 'กรุณาระบุเอกสารที่ต้องการ';
+    if (!V('purpose')) return 'กรุณาระบุวัตถุประสงค์';
+    const c = cats.find((x) => x.name === V('cat'));
+    if (c.attach === 'required' && !picked.length) return 'ประเภทนี้ต้องแนบเอกสารประกอบ';
+    if (picked.some((f) => f.size > 5 * 1048576)) return 'มีไฟล์ใหญ่เกิน 5 MB';
+  }
+  return '';
+}
+$('#back').onclick = () => { $('#err').textContent = ''; show(step - 1); };
+$('#next').onclick = async () => {
+  const e = validate(step);
+  $('#err').textContent = e;
+  if (e) return;
+  if (step < 3) return show(step + 1);
+  $('#next').disabled = true; $('#next').textContent = 'กำลังส่ง...';
+  try {
+    const files = await Promise.all(picked.map(async (f) => ({ name: f.name, mime: f.type, data: await toB64(f) })));
+    const r = await api('saveRequest', {
+      firstName: V('fn'), lastName: V('ln'), position: V('pos'), department: V('dep'), phone: V('tel'), email: V('em'),
+      category: V('cat'), detail: V('detail'), purpose: V('purpose'), submitTo: V('to'), files,
+    });
+    $('#p1').innerHTML = `<div class="card"><h2>ส่งคำขอเรียบร้อย</h2><p>เลขที่คำขอ <b>${esc(r.id)}</b></p>
+      <p class="meta">ระบบส่งอีเมลยืนยันไปที่ ${esc(V('em') || 'อีเมลของท่าน')} แล้ว ติดตามความคืบหน้าได้ที่แท็บ "ติดตามสถานะ"</p>
+      <button class="btn block" onclick="location.reload()">ยื่นคำขอใหม่</button></div>`;
+  } catch (err) { $('#err').textContent = 'ส่งไม่สำเร็จ: ' + err.message; $('#next').disabled = false; $('#next').textContent = 'ส่งคำขอ'; }
+};
+
+function timeline(r) {
+  const s = r.Status, rej = s === 'Rejected', byDir = !!r.Director_By, line = (b, t, c, sm) => `<li class="${c}"><b>${b}</b>${sm ? `<small>${esc(sm)}</small>` : ''}</li>`;
+  const st1 = s === 'Pending' ? 'cur' : rej && !byDir ? 'bad' : 'done';
+  const st2 = s === 'WaitDirector' ? 'cur' : rej && byDir ? 'bad' : (s === 'Approved' || s === 'Sent') ? 'done' : '';
+  const st3 = s === 'Approved' ? 'cur' : s === 'Sent' ? 'done' : '';
+  return '<ul class="tl">' +
+    line('ยื่นคำขอ', 0, 'done', r.Timestamp) +
+    line('เจ้าหน้าที่ตรวจสอบ', 0, st1, [r.Staff_By && r.Staff_At ? r.Staff_By + ' · ' + r.Staff_At : '', r.Staff_Remark].filter(Boolean).join('\n')) +
+    line('ผอ.กลุ่มบริหารทรัพยากรบุคคลอนุมัติ', 0, st2, [byDir ? r.Director_By + ' · ' + r.Director_At : '', r.Director_Remark].filter(Boolean).join('\n')) +
+    line('ส่งไฟล์ PDF ทางอีเมล', 0, st3, s === 'Sent' ? r.Sent_At + ' · ถึง ' + r.Email : '') + '</ul>';
+}
+async function loadList() {
+  $('#list').innerHTML = '<p class="meta">กำลังโหลด...</p>';
+  const rs = await api('myRequests');
+  $('#list').innerHTML = rs.length ? rs.map((r) => `<div class="card req">
+    <div class="row"><span class="id">${esc(r.Request_ID)}</span>${badge(r.Status)}</div>
+    <p>${esc(r.Category)}</p>${timeline(r)}</div>`).join('') : '<div class="card"><p class="meta">ยังไม่มีคำขอ</p></div>';
+}
+function tab(n) {
+  $('#p1').hidden = n !== 1; $('#p2').hidden = n !== 2;
+  $('#t1').className = n === 1 ? 'on' : ''; $('#t2').className = n === 2 ? 'on' : '';
+  if (n === 2) loadList().catch((e) => $('#list').innerHTML = `<div class="notice">${esc(e.message)}</div>`);
+}
+$('#t1').onclick = () => tab(1); $('#t2').onclick = () => tab(2);
+show(1);
+boot().catch((e) => {
+  $('#cat').innerHTML = '<option value="">โหลดไม่สำเร็จ</option>';
+  document.querySelector('.wrap').insertAdjacentHTML('afterbegin', `<div class="notice" role="alert"><b>เปิดระบบไม่สำเร็จ</b><br>${esc(e.message)}</div>`);
+});
+</script>
+</body>
+</html>
